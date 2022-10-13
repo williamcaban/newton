@@ -1,0 +1,7 @@
+# filename: /etc/yum.repos.d/influxdb.repo
+[influxdb]
+name = InfluxDB Repository - RHEL 
+baseurl = https://repos.influxdata.com/rhel/9/x86_64/stable/
+enabled = 1
+gpgcheck = 1
+gpgkey = https://repos.influxdata.com/influxdb.key

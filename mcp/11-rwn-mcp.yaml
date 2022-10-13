@@ -1,0 +1,20 @@
+---
+# oc label node w2.tme.shift.zone node-role.kubernetes.io/rwn=''
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: rwn
+  name: rwn
+spec:
+  machineConfigSelector:
+    matchExpressions:
+    - key: machineconfiguration.openshift.io/role
+      operator: In
+      values:
+      - worker
+      - rwn
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/rwn: ""
+  paused: false

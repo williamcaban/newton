@@ -1,0 +1,21 @@
+---
+# oc label node w3.tme.shift.zone node-role.kubernetes.io/newton=''
+# oc label node w4.tme.shift.zone node-role.kubernetes.io/newton=''
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfigPool
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: newton
+  name: newton
+spec:
+  machineConfigSelector:
+    matchExpressions:
+    - key: machineconfiguration.openshift.io/role
+      operator: In
+      values:
+      - worker
+      - newton
+  nodeSelector:
+    matchLabels:
+      node-role.kubernetes.io/newton: ""
+  paused: false

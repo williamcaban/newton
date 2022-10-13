@@ -1,0 +1,34 @@
+#FROM registry.access.redhat.com/ubi8/ubi
+FROM quay.io/centos/centos:stream9
+
+COPY influxdb.repo /etc/yum.repos.d/influxdb.repo
+
+# Make sure image is updated and EPEL is installed
+RUN dnf -y update \
+    && dnf install --setopt=tsflags=nodocs -y epel-release \
+    && dnf install --setopt=tsflags=nodocs -y \
+    telegraf \
+    net-snmp-utils \
+    && dnf clean all \
+    && rm -fr /var/cache/dnf
+
+WORKDIR /app
+# user for running app
+RUN useradd -d /app -r -g root -s /sbin/nologin -c "Container image user" appuser \
+    && chmod 0775 /app
+
+#COPY ./local/path/*.py /app/path/
+#COPY ./resources ./app.py ./requirements.txt /app/
+
+# upgrade pip3 and install required packages (at Pod level)
+#RUN pip3 install wheel \
+#    && pip3 install --upgrade pip \
+#    && pip3 install -r requirements.txt \
+#    && pip3 cache purge
+
+#USER appuser
+#EXPOSE 5000/tcp
+
+LABEL io.k8s.display-name="telegraf-snmp" \
+    io.k8s.description="Telegraf SNMP metrics collector" \
+    io.openshift.tags="telegraf,snmp,metrics,prometheus"

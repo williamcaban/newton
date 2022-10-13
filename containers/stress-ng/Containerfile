@@ -1,0 +1,25 @@
+FROM quay.io/centos/centos:stream9
+
+# Make sure image is updated and EPEL is installed
+RUN dnf -y update \
+    && dnf install --setopt=tsflags=nodocs -y epel-release \
+    && dnf install --setopt=tsflags=nodocs -y \
+    less jq \
+    stress-ng \
+    procps-ng \
+    ps_mem \
+    && dnf clean all \
+    && rm -fr /var/cache/dnf
+
+
+WORKDIR /app
+
+# user for running app
+#RUN useradd -d /app -r -g root -s /sbin/nologin -c "Container image user" appuser \
+#    && chmod 0775 /app
+#USER appuser
+#EXPOSE 5000/tcp
+
+LABEL io.k8s.display-name="stressng" \
+    io.k8s.description="Testing tool" \
+    io.openshift.tags="stress-ng"
