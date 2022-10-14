@@ -1,0 +1,104 @@
+#!/usr/bin/python3
+#################################################################################
+# Example run:
+#   export LOAD=95 ; export TIMER=15 ; export STEPS=5 ; python3 load_generator.py
+# Convert to ConfigMap
+#   oc create configmap load-generator-py --from-file=load_generator.py
+#################################################################################
+#
+import time
+import os
+import yaml
+import subprocess
+
+class StressNg(object):
+    def __init__(self):
+        self.nodename = os.uname()[1]
+        self.krelease = os.uname()[2]
+        self.cpusyscount = os.cpu_count()
+        self.cpuaffinity = os.sched_getaffinity(0)
+        self.cpuusable = len(os.sched_getaffinity(0))
+
+    def collect(self):
+        with open('stress_test.yaml', 'r') as file:
+            test = yaml.safe_load(file)
+        
+        epoch = test["system-info"][0]["epoch-secs"]
+        stressor = test["metrics"][0]["stressor"]
+        cpuusage = test["metrics"][0]["cpu-usage-per-instance"]
+        
+    def load_generation(self, stressng_load=100, step_load=None, stressng_time=60):
+        PROCS=[]
+        RANGE_START=0
+        RANGE_STEP=1
+        
+        if step_load:
+            print(f"Running step_load test up to {stressng_load}")
+            RANGE_STEP=int(step_load)
+        else:
+            RANGE_START=stressng_load
+        
+        print(f"Starting load_generation cycle")
+
+        for cpu_load in range(RANGE_START, stressng_load+1, int(stressng_load/RANGE_STEP) ):
+            print(f"Executing stress-ng for {stressng_time} seconds at {cpu_load} load")
+            
+            p1 = subprocess.Popen(["stress-ng","-c","0", "-l", f"{cpu_load}", "-t",f"{stressng_time}s", "--metrics", "-Y","stress_test.yaml"], 
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+            if cpu_load >= 90:
+                # when requesting 90%+ add extra load to each one of the assigned CPUs
+                for x in range(self.cpuusable):
+                    PROCS.append(self.extra_load())
+                    print(f"Adding extra load process...PID {PROCS[len(PROCS)-1].pid}")
+
+            while p1.poll() != 0:
+                print("running...")
+                time.sleep(3)
+            else:
+                # terminate all extra_load processes
+                for x in PROCS:
+                    print(f"Terminating extra load process...PID {x.pid}")
+                    x.terminate()
+                    
+        print(f"Completed load_generation cycle")
+
+    def extra_load(self):
+        # Note: to avoid dd hanging on termination, it needs the wrapper for bash (shell=True not enough)
+        p = subprocess.Popen(["bash","-c","dd if=/dev/zero of=/dev/null"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return p 
+
+if __name__ == "__main__":
+    DEFAULT_LOAD=100
+    DEFAULT_TIMER=60
+    DEFAULT_STEPS=None
+
+    # fetch LOAD environment variables
+    try:
+        default_load = int(os.getenv('LOAD', DEFAULT_LOAD))
+    except KeyError:
+        print(f"Error parsing {os.environ['LOAD']} as interger. Using load={DEFAULT_LOAD} instead.")
+        default_load = DEFAULT_LOAD
+    # fetch TIMER environment variables
+    try:
+        default_timer = int(os.getenv('TIMER', DEFAULT_TIMER))
+    except KeyError:
+        print(f"Error parsing {os.environ['TIMER']} as interger. Using timer={DEFAULT_TIMER} instead.")
+        default_timer = DEFAULT_TIMER
+    # fetch STEP environment variables
+    try:
+        default_steps = int(os.getenv('STEPS', DEFAULT_STEPS))
+    except:
+        print(f"Using fixed load. For progressive load from 0 to {default_load} specify the number of steps on range.")
+        default_steps = DEFAULT_STEPS
+    # 
+    stress=StressNg()
+    while True:
+        stress.load_generation(stressng_load=default_load, 
+                                step_load=default_steps, 
+                                stressng_time=default_timer)
+        time.sleep(1)
+
+#
+# END OF FILE
+#

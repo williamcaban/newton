@@ -5,12 +5,23 @@ RUN dnf -y update \
     && dnf install --setopt=tsflags=nodocs -y epel-release \
     && dnf install --setopt=tsflags=nodocs -y \
     less jq \
+    util-linux \
     stress-ng \
     procps-ng \
     ps_mem \
+    python3 \
+    python3-pip \
+    python3-pyyaml \
     && dnf clean all \
     && rm -fr /var/cache/dnf
 
+# fetch yq binary
+RUN curl -L -o /usr/local/bin/yq \
+    https://github.com/mikefarah/yq/releases/download/v4.28.1/yq_linux_amd64 \
+    && chmod +x /usr/local/bin/yq
+
+# pre-reqs for python custom prometheus exporter
+RUN /usr/bin/python3 -m pip install prometheus_client
 
 WORKDIR /app
 
@@ -23,3 +34,8 @@ WORKDIR /app
 LABEL io.k8s.display-name="stressng" \
     io.k8s.description="Testing tool" \
     io.openshift.tags="stress-ng"
+
+ENTRYPOINT bash -c "sleep infinity"
+
+# Note: To run this container with podman
+# podman run -ti --rm --cap-add=sys_admin quay.io/wcaban/stress-ng:latest /bin/bash

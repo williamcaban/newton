@@ -1,0 +1,49 @@
+######
+# Pod
+######
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stress-ng
+  labels:
+    app: stress-ng
+spec:
+  containers:
+  - name: stress-ng
+    image: quay.io/wcaban/stress-ng:latest
+    securityContext:
+      # privileged: true
+      capabilities:
+        add:
+        - SYS_ADMIN
+    command:
+    - /usr/bin/python3 
+    - -u
+    - /app/load_generator.py
+    # command:
+    # - sleep
+    # - infinity
+    env:
+    # cpu load % for stress-ng
+    - name: LOAD
+      value: "95"
+    # time for stress-ng
+    - name: TIMER
+      value: "60"
+    # (if defined) will run on steps from 0% to $LOAD % on $STEPS
+    # - name: STEPS
+    #   value: "5"
+    volumeMounts:
+    - name: load-generator-py
+      mountPath:  /app/
+  imagePullPolicy: Always
+  terminationGracePeriodSeconds: 30
+  terminationMessagePath: /dev/termination-log
+  terminationMessagePolicy: FallbackToLogsOnError
+  volumes:
+    - name: load-generator-py
+      configMap:
+        name: load-generator-py
+        #defaultMode: 0777
+  nodeSelector: 
+    kubernetes.io/hostname: w2.tme.shift.zone
