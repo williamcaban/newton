@@ -1,0 +1,47 @@
+# oc adm policy add-scc-to-user privileged -z default
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: lldpd
+  namespace: lldpd
+  labels:
+    name: lldpd
+spec:
+  selector:
+    matchLabels:
+      name: lldpd
+  template:
+    metadata:
+      labels:
+        name: lldpd
+    spec:
+      # tolerations:
+      # # these tolerations are to have the daemonset runnable on control plane nodes
+      # # remove them if your control plane nodes should not run pods
+      # - key: node-role.kubernetes.io/control-plane
+      #   operator: Exists
+      #   effect: NoSchedule
+      # - key: node-role.kubernetes.io/master
+      #   operator: Exists
+      #   effect: NoSchedule
+      hostNetwork: true
+      containers:
+      - name: lldpd
+        image: quay.io/wcaban/lldpd:latest
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
+        command:
+        - /usr/bin/bash 
+        - -c 
+        - | 
+          set -x
+          echo "# Starting LLDP daemon"
+          lldpd
+          while true ; do echo "# $(date)" ; lldpcli show neighbors summary -f keyvalue ; sleep 5 ; done
+      imagePullPolicy: Always
+      terminationGracePeriodSeconds: 30
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: FallbackToLogsOnError

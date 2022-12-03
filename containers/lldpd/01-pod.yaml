@@ -1,0 +1,31 @@
+######
+# Pod
+######
+apiVersion: v1
+kind: Pod
+metadata:
+  name: lldpd
+  labels:
+    app: lldpd
+spec:
+  hostNetwork: true
+  containers:
+  - name: lldpd
+    image: quay.io/wcaban/lldpd:latest
+    securityContext:
+      privileged: true
+      capabilities:
+        add:
+        - SYS_ADMIN
+    command:
+    - /usr/bin/bash 
+    - -c 
+    - | 
+      set -x
+      echo "# Starting LLDP daemon"
+      lldpd
+      while true ; do echo "# $(date)" ; lldpcli show neighbors summary -f keyvalue ; sleep 5 ; done
+  imagePullPolicy: Always
+  terminationGracePeriodSeconds: 30
+  terminationMessagePath: /dev/termination-log
+  terminationMessagePolicy: FallbackToLogsOnError

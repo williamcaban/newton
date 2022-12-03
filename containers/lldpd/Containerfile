@@ -1,0 +1,38 @@
+# Note: To run this container with podman
+# podman run -ti --rm --net=host --cap-add=sys_admin quay.io/wcaban/lldpd:latest /bin/bash
+FROM quay.io/fedora/fedora:37-x86_64
+
+ENV SUMMARY="Base image for LLDPD service " \
+    DESCRIPTION="Custom image for LLDP" \
+    MAINTAINER="William Caban" \
+    container=oci \
+    APP_ROOT=/opt/app-root  \
+    PATH=/opt/app-root/.local/bin:/opt/app-root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+LABEL summary="$SUMMARY" \
+    description="$DESCRIPTION" \
+    maintainer="$MAINTAINER" \
+    io.k8s.description="$DESCRIPTION" \
+    io.k8s.display-name="LLDPD base" \
+    name="wcaban/lldpd" \
+    version="1"
+
+RUN dnf -y update && \
+    INSTALL_PKGS="lldpd" \
+    && mkdir -p ${APP_ROOT}/.pki/nssdb \
+    && chown -R 1001:0 ${APP_ROOT}/.pki \
+    && dnf install -y --setopt=tsflags=nodocs $INSTALL_PKGS \
+    && rm -fr /var/cache/dnf \
+    && dnf -y clean all --enablerepo='*'
+
+WORKDIR ${APP_ROOT}
+
+# Directory set as the working directory
+RUN useradd -u 1001 -r -g 0 -G video -d ${APP_ROOT} -s /sbin/nologin \
+    -c "Default Application User" default \
+    && chown -R 1001:0 ${APP_ROOT}
+
+RUN rm -rf /var/log/*
+
+
+ENTRYPOINT bash -c "sleep infinity"
